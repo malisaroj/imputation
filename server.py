@@ -1,12 +1,12 @@
 from typing import Dict, Optional, Tuple
 from pathlib import Path
-from datetime import datetime
 import flwr as fl
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
-
+import matplotlib.pyplot as plt
+import os
 
 def main() -> None:
     # Load and compile model for
@@ -38,12 +38,8 @@ def main() -> None:
         initial_parameters=fl.common.ndarrays_to_parameters(model.get_weights()),
     )
 
-    # Create a TensorBoard callback
-    log_dir = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
-
     # Start Flower server (SSL-enabled) for four rounds of federated learning
-    fl.server.start_server(
+    history = fl.server.start_server(
         server_address="0.0.0.0:8080",
         config=fl.server.ServerConfig(num_rounds=4),
         strategy=strategy,
@@ -52,13 +48,49 @@ def main() -> None:
             Path(".cache/certificates/server.pem").read_bytes(),
             Path(".cache/certificates/server.key").read_bytes(),
         ),
-        tensorboard_callback=tensorboard_callback,  # Add the TensorBoard callback
     )
 
     # Save the trained model after the training is completed
     model_save_path = Path(".cache") / "trained_model"
+
+    # Check if the model file already exists, and replace it if necessary
+    if model_save_path.exists():
+        print("A trained model already exists. Replacing it.")
+        os.remove(model_save_path)
+
     model.save(model_save_path)
 
+    # Plot the accuracy and loss graphs
+    plot_results(history)
+
+def plot_results(history):
+    # Access the metrics from the final round
+    final_round_metrics = history.metrics_centralized
+
+    # Extract global accuracy and loss
+    global_accuracy = final_round_metrics["accuracy"]
+    global_loss = final_round_metrics["loss"]
+
+    # Plot accuracy
+    plt.figure(figsize=(12, 6))
+    plt.subplot(1, 2, 1)
+    plt.plot(global_accuracy, label='Global Accuracy', marker='o')
+    plt.title('Global Accuracy over Rounds')
+    plt.xlabel('Round')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    # Plot loss
+    plt.subplot(1, 2, 2)
+    plt.plot(global_loss, label='Global Loss', marker='o')
+    plt.title('Global Loss over Rounds')
+    plt.xlabel('Round')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    # Show the plots
+    plt.tight_layout()
+    plt.show()
 
 def get_evaluate_fn(model):
     """Return an evaluation function for server-side evaluation."""
