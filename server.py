@@ -18,7 +18,7 @@ def main() -> None:
     #model.compile("adam", "sparse_categorical_crossentropy", metrics=["accuracy"])
 
     model = tf.keras.Sequential([
-        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=64, return_sequences=True), input_shape=(1, 15)),
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=64, return_sequences=True), input_shape=(1, 10)),
         tf.keras.layers.GRU(units=32, activation='relu'),
         tf.keras.layers.Dense(units=2)
     ])
@@ -39,7 +39,7 @@ def main() -> None:
     )
 
     # Start Flower server (SSL-enabled) for four rounds of federated learning
-    history = fl.server.start_server(
+    fl.server.start_server(
         server_address="0.0.0.0:8080",
         config=fl.server.ServerConfig(num_rounds=4),
         strategy=strategy,
@@ -56,41 +56,19 @@ def main() -> None:
     # Check if the model file already exists, and replace it if necessary
     if model_save_path.exists():
         print("A trained model already exists. Replacing it.")
-        os.remove(model_save_path)
+        try:
+            os.remove(model_save_path)
+        except PermissionError as e:
+            print(f"Error removing existing model file: {e}")
+            # Handle the error as needed, e.g., by renaming the existing file
+            # or prompting the user for action.
+            # Example: os.rename(model_save_path, 'backup_model')
+    else:
+        print("No existing model file found.")
 
+    # Save the new model
     model.save(model_save_path)
 
-    # Plot the accuracy and loss graphs
-    plot_results(history)
-
-def plot_results(history):
-    # Access the metrics from the final round
-    final_round_metrics = history.metrics_centralized
-
-    # Extract global accuracy and loss
-    global_accuracy = final_round_metrics["accuracy"]
-    global_loss = final_round_metrics["loss"]
-
-    # Plot accuracy
-    plt.figure(figsize=(12, 6))
-    plt.subplot(1, 2, 1)
-    plt.plot(global_accuracy, label='Global Accuracy', marker='o')
-    plt.title('Global Accuracy over Rounds')
-    plt.xlabel('Round')
-    plt.ylabel('Accuracy')
-    plt.legend()
-
-    # Plot loss
-    plt.subplot(1, 2, 2)
-    plt.plot(global_loss, label='Global Loss', marker='o')
-    plt.title('Global Loss over Rounds')
-    plt.xlabel('Round')
-    plt.ylabel('Loss')
-    plt.legend()
-
-    # Show the plots
-    plt.tight_layout()
-    plt.show()
 
 def get_evaluate_fn(model):
     """Return an evaluation function for server-side evaluation."""
@@ -101,10 +79,10 @@ def get_evaluate_fn(model):
     # Create features, labels, and client_ids from your preprocessed dataset
     scaler = StandardScaler()
 
-    scaled_features = scaler.fit_transform(df[['resource_request_cpus', 'resource_request_memory', 'poly_maximum_usage_cpus random_sample_usage_cpus',
-                                        'maximum_usage_cpus', 'poly_random_sample_usage_cpus', 'poly_random_sample_usage_cpus^2', 'memory_demand_lag_1',
-                                        'maximum_usage_memory', 'interaction_feature', 'poly_maximum_usage_cpus^2', 'memory_demand_rolling_mean',
-                                        'random_sample_usage_cpus', 'assigned_memory', 'poly_maximum_usage_cpus', 'memory_demand_rolling_std',
+    scaled_features = scaler.fit_transform(df[['resource_request_cpus', 'resource_request_memory', 
+                                        'maximum_usage_cpus', 'memory_demand_lag_1',
+                                        'maximum_usage_memory', 'interaction_feature',  'memory_demand_rolling_mean',
+                                        'random_sample_usage_cpus', 'assigned_memory',  'memory_demand_rolling_std',
                                         ]])
 
     labels = df[['average_usage_cpus', 'average_usage_memory']]

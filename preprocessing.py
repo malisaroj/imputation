@@ -57,13 +57,6 @@ df['memory_demand_lag_1'] = df['resource_request_memory'].shift(1)
 df['memory_demand_rolling_mean'] = df['resource_request_memory'].rolling(window=3).mean()
 df['memory_demand_rolling_std'] = df['resource_request_memory'].rolling(window=3).std()
 
-# Polynomial features
-poly = PolynomialFeatures(degree=2, include_bias=False)
-poly_features = poly.fit_transform(df[['maximum_usage_cpus', 'random_sample_usage_cpus']])
-poly_feature_names = [f"poly_{name}" for name in poly.get_feature_names_out(['maximum_usage_cpus', 'random_sample_usage_cpus'])]
-poly_df = pd.DataFrame(poly_features, columns=poly_feature_names)
-df = pd.concat([df, poly_df], axis=1)
-
 # Check for empty values
 empty_values = df.isnull().sum()
 print("Empty Values:\n", empty_values)

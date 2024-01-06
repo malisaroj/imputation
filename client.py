@@ -110,7 +110,7 @@ def main() -> None:
     #)
 
     model = tf.keras.Sequential([
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=64, return_sequences=True), input_shape=(1, 15)),
+    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=64, return_sequences=True), input_shape=(1, 10)),
     tf.keras.layers.GRU(units=32, activation='relu'),
     tf.keras.layers.Dense(units=2)
     ])
@@ -144,10 +144,10 @@ def load_partition(idx: int):
     # Create features, labels, and client_ids from your preprocessed dataset
     scaler = StandardScaler()
 
-    scaled_features = scaler.fit_transform(df[['resource_request_cpus', 'resource_request_memory', 'poly_maximum_usage_cpus random_sample_usage_cpus',
-                                        'maximum_usage_cpus', 'poly_random_sample_usage_cpus', 'poly_random_sample_usage_cpus^2', 'memory_demand_lag_1',
-                                        'maximum_usage_memory', 'interaction_feature', 'poly_maximum_usage_cpus^2', 'memory_demand_rolling_mean',
-                                        'random_sample_usage_cpus', 'assigned_memory', 'poly_maximum_usage_cpus', 'memory_demand_rolling_std',
+    scaled_features = scaler.fit_transform(df[['resource_request_cpus', 'resource_request_memory', 
+                                        'maximum_usage_cpus',  'memory_demand_lag_1',
+                                        'maximum_usage_memory', 'interaction_feature',  'memory_demand_rolling_mean',
+                                        'random_sample_usage_cpus', 'assigned_memory',  'memory_demand_rolling_std',
                                         ]])
 
     labels = df[['average_usage_cpus', 'average_usage_memory']]
@@ -167,8 +167,8 @@ def load_partition(idx: int):
     x_test_reshaped = tf.reshape(x_test, (x_test.shape[0], 1, x_test.shape[1]))
 
     return (
-        x_train_reshaped[idx * 5000 : (idx + 1) * 5000],
-        y_train[idx * 5000 : (idx + 1) * 5000],
+        x_train_reshaped[idx * 30000 : (idx + 1) * 30000],
+        y_train[idx * 30000 : (idx + 1) * 30000],
     ), (
         x_test_reshaped[idx * 1000 : (idx + 1) * 1000],
         y_test[idx * 1000 : (idx + 1) * 1000],
