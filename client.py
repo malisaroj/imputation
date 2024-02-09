@@ -91,7 +91,7 @@ def main() -> None:
         default=0,
         choices=range(0, 10),
         required=True,
-        help="Specifies the artificial data partition of CIFAR10 to be used. "
+        help="Specifies the artificial data partition of dataset to be used. "
         "Picks partition 0 by default",
     )
     parser.add_argument(
@@ -108,16 +108,37 @@ def main() -> None:
     #model = tf.keras.applications.EfficientNetB0(
     #    input_shape=(32, 32, 3), weights=None, classes=10
     #)
-
+    '''
+    # Model with only GRU layer
     model = tf.keras.Sequential([
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=64, return_sequences=True), input_shape=(1, 10)),
-    tf.keras.layers.GRU(units=32, activation='relu'),
-    tf.keras.layers.Dense(units=2)
+        tf.keras.layers.GRU(units=128, activation='relu', input_shape=(1, 15)),
+        tf.keras.layers.Dense(units=2, activation='linear')  
     ])
 
-    model.compile("adam", "mean_squared_error", metrics=["accuracy"])
+    # Model with only Bidirectional LSTM layer
+    model = tf.keras.Sequential([
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=512, return_sequences=False), input_shape=(1, 15)),
+        tf.keras.layers.Dense(units=2, activation='linear')  
+    ])
 
-    # Load a subset of CIFAR-10 to simulate the local data partition
+    model = tf.keras.Sequential([
+        tf.keras.layers.LSTM(units=512, return_sequences=True, input_shape=(1, 15)),
+        tf.keras.layers.LSTM(units=128, activation='relu'),
+        tf.keras.layers.Dense(units=2, activation='linear')
+    ])
+ '''
+
+    model = tf.keras.Sequential([
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=512, return_sequences=True), input_shape=(1, 23)),
+        tf.keras.layers.GRU(units=128, activation='relu'),
+        tf.keras.layers.Dense(units=2, activation='linear')  
+    ]) 
+
+    model.compile("adam", "mean_squared_error", metrics=["accuracy"])
+    #model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae', tf.keras.metrics.RootMeanSquaredError(name='rmse')])
+
+
+    # Load a subset of dataset to simulate the local data partition
     (x_train, y_train), (x_test, y_test) = load_partition(args.partition)
 
     if args.toy:
@@ -143,13 +164,13 @@ def load_partition(idx: int):
 
     # Create features, labels, and client_ids from your preprocessed dataset
     scaler = StandardScaler()
-
-    scaled_features = scaler.fit_transform(df[['resource_request_cpus', 'resource_request_memory', 
-                                        'maximum_usage_cpus',  'memory_demand_lag_1',
-                                        'maximum_usage_memory', 'interaction_feature',  'memory_demand_rolling_mean',
-                                        'random_sample_usage_cpus', 'assigned_memory',  'memory_demand_rolling_std',
-                                        ]])
-
+    scaled_features = scaler.fit_transform(df[[ 'resource_request_cpus', 'resource_request_memory',  'poly_maximum_usage_cpus random_sample_usage_cpus', 
+                                                'maximum_usage_cpus',  'poly_random_sample_usage_cpus', 'poly_random_sample_usage_cpus^2', 'memory_demand_rolling_mean',
+                                                'maximum_usage_memory',  'interaction_feature', 'poly_maximum_usage_cpus^2', 'memory_demand_lag_1',
+                                                'random_sample_usage_cpus', 'assigned_memory',  'poly_maximum_usage_cpus', 'memory_demand_rolling_std', 
+                                                'start_hour', 'start_dayofweek', 'duration_seconds', 'sample_rate', 'cycles_per_instruction', 
+                                                'memory_accesses_per_instruction', 'page_cache_memory', 'priority',
+                                            ]])
     labels = df[['average_usage_cpus', 'average_usage_memory']]
 
 
