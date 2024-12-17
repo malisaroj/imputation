@@ -365,7 +365,7 @@ def load_partition(idx: int):
         for feature, reordered_df in reordered_data.items()
     }
     #use federated learning  after 227
-    from sklearn.preprocessing import MinMaxScaler
+
 
     # Step 1: Scale each feature in recovered_results using MinMaxScaler
     scaled_recovered_results = {}
